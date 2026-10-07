@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>公文排版</title>
+  <title>md2word — 公文排版</title>
   <style>
     :root {
       color-scheme: light;
@@ -12,8 +12,8 @@
       --text: #242823;
       --muted: #69716a;
       --border: #d9ddd7;
-      --accent: #334c45;
-      --accent-hover: #253a33;
+      --accent: #244a40;
+      --accent-hover: #173a31;
     }
     * { box-sizing: border-box; }
     body {
@@ -26,22 +26,26 @@
     button, textarea { font: inherit; }
     .shell { width: min(100% - 48px, 1000px); margin: 0 auto; }
     .masthead { border-bottom: 1px solid var(--border); background: var(--surface); }
-    .masthead-inner { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
-    .brand { font-size: 19px; font-weight: 650; letter-spacing: .015em; }
-    .github { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; text-decoration: none; white-space: nowrap; }
-    .github:hover { color: var(--accent); }
-    .github svg { width: 18px; height: 18px; fill: currentColor; }
-    main { padding-top: 47px; padding-bottom: 52px; }
-    .page-heading { display: flex; justify-content: space-between; gap: 32px; align-items: baseline; margin-bottom: 24px; }
-    h1 { margin: 0; font-size: 29px; line-height: 1.25; font-weight: 620; letter-spacing: -.025em; }
+    .masthead-inner { min-height: 74px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+    .brand { display: inline-flex; align-items: baseline; gap: 14px; }
+    .brand-name { color: var(--text); font: 700 24px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: -.075em; }
+    .brand-name span { color: var(--accent); }
+    .brand-description { color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+    .github { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 38px; padding: 0 13px; border: 1px solid var(--border); color: var(--text); background: var(--surface); font-size: 12px; font-weight: 600; text-decoration: none; white-space: nowrap; transition: border-color .15s, background .15s, transform .15s; }
+    .github:hover { border-color: var(--accent); background: #f0f5f2; transform: translateY(-1px); }
+    .github svg { width: 17px; height: 17px; fill: currentColor; }
+    main { padding-top: 44px; padding-bottom: 42px; }
+    .page-heading { margin-bottom: 22px; }
+    h1 { margin: 0 0 7px; font-size: 23px; line-height: 1.3; font-weight: 650; letter-spacing: -.015em; }
     .subtitle { margin: 0; color: var(--muted); font-size: 13px; }
     .notice { padding: 11px 14px; margin: 0 0 16px; color: #7b352e; border: 1px solid #e4c8c3; background: #fff9f7; }
     .safety { padding: 12px 15px; margin: 0 0 20px; border-left: 3px solid #a85c4b; background: #f7eee9; color: #603d35; font-size: 13px; }
     .safety a { color: inherit; text-underline-offset: 3px; }
     .workspace { border: 1px solid var(--border); background: var(--surface); }
-    .toolbar { min-height: 60px; display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 1px solid var(--border); }
-    .import { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; white-space: nowrap; }
-    .import:hover { background: var(--background); }
+    .toolbar { min-height: 68px; display: flex; align-items: center; gap: 14px; padding: 11px 17px; border-bottom: 1px solid var(--border); }
+    .import { position: relative; display: inline-flex; align-items: center; gap: 9px; min-height: 40px; padding: 0 15px; border: 1px solid var(--accent); background: #f0f5f2; color: var(--accent); font-size: 13px; font-weight: 650; cursor: pointer; white-space: nowrap; transition: background .15s, transform .15s; }
+    .import:hover { background: #e3eee8; transform: translateY(-1px); }
+    .import svg { width: 16px; height: 16px; stroke: currentColor; stroke-width: 1.8; fill: none; }
     .import input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
     .filename { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
     .state { margin-left: auto; color: var(--muted); font-size: 12px; white-space: nowrap; }
@@ -60,28 +64,32 @@
       tab-size: 2;
     }
     textarea:focus { box-shadow: inset 2px 0 0 var(--accent); }
-    .actionbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 13px 16px; border-top: 1px solid var(--border); }
+    .actionbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 17px; border-top: 1px solid var(--border); }
     .shortcut { color: var(--muted); font-size: 12px; }
-    .primary { border: 1px solid var(--accent); background: var(--accent); color: white; padding: 9px 17px; font-size: 13px; font-weight: 600; cursor: pointer; }
-    .primary:hover { background: var(--accent-hover); }
+    .primary { display: inline-flex; align-items: center; justify-content: center; gap: 13px; min-height: 44px; border: 1px solid var(--accent); background: var(--accent); color: white; padding: 0 18px; font-size: 13px; font-weight: 650; cursor: pointer; transition: background .15s, transform .15s, box-shadow .15s; }
+    .primary:hover { background: var(--accent-hover); transform: translateY(-1px); box-shadow: 0 4px 12px #244a4026; }
+    .primary:disabled { opacity: .65; cursor: wait; transform: none; }
+    .primary svg { width: 17px; height: 17px; stroke: currentColor; stroke-width: 1.8; fill: none; }
     .primary:focus-visible, .import:focus-within, summary:focus-visible, .github:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
     .below { display: flex; justify-content: space-between; align-items: start; gap: 32px; margin-top: 19px; color: var(--muted); font-size: 12px; }
     .format-line { margin: 0; }
     details { flex-shrink: 0; }
-    summary { cursor: pointer; color: var(--accent); }
+    summary { display: inline-flex; align-items: center; min-height: 32px; padding: 0 9px; cursor: pointer; color: var(--accent); font-weight: 600; }
+    summary:hover { background: #e8eee9; }
+    .credit { margin: 34px 0 0; padding-top: 16px; border-top: 1px solid var(--border); color: var(--muted); font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; letter-spacing: .02em; text-align: right; }
     pre { margin: 10px 0 0; padding: 14px; border: 1px solid var(--border); background: var(--surface); color: var(--text); font: 12px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
     @media (max-width: 720px) {
       .shell { width: min(100% - 28px, 1000px); }
       main { padding-top: 30px; }
-      .page-heading { display: block; }
-      h1 { font-size: 25px; }
-      .subtitle { margin-top: 7px; }
+      h1 { font-size: 21px; }
       textarea { min-height: 430px; padding: 19px; }
       .below { display: block; }
       details { margin-top: 12px; }
     }
     @media (max-width: 460px) {
       .github span { display: none; }
+      .github { width: 40px; padding: 0; }
+      .brand-description { display: none; }
       .state { display: none; }
       .actionbar { align-items: stretch; flex-direction: column; }
       .primary { width: 100%; }
@@ -91,27 +99,27 @@
 <body>
   <header class="masthead">
     <div class="shell masthead-inner">
-      <div class="brand">公文排版</div>
+      <div class="brand"><span class="brand-name">md<span>2</span>word</span><span class="brand-description">公文格式转换</span></div>
       <a class="github" href="https://github.com/SEU-Peter/md2word" target="_blank" rel="noopener noreferrer" aria-label="打开 GitHub 仓库"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .7a11.3 11.3 0 0 0-3.57 22.02c.56.1.77-.24.77-.54v-2.1c-3.13.68-3.79-1.33-3.79-1.33-.51-1.3-1.25-1.64-1.25-1.64-1.02-.7.08-.68.08-.68 1.13.08 1.72 1.16 1.72 1.16 1.01 1.72 2.65 1.22 3.3.93.1-.73.4-1.23.72-1.51-2.5-.28-5.13-1.25-5.13-5.59 0-1.23.44-2.24 1.16-3.03-.12-.28-.5-1.43.11-2.98 0 0 .95-.3 3.11 1.16a10.7 10.7 0 0 1 5.66 0c2.16-1.46 3.1-1.16 3.1-1.16.62 1.55.24 2.7.12 2.98.72.79 1.16 1.8 1.16 3.03 0 4.35-2.63 5.3-5.14 5.58.4.35.77 1.04.77 2.1v3.1c0 .3.2.65.78.54A11.3 11.3 0 0 0 12 .7Z"/></svg><span>GitHub 仓库</span></a>
     </div>
   </header>
   <main class="shell">
     <div class="page-heading">
-      <h1>编辑文稿</h1>
+      <h1>开始排版</h1>
       <p class="subtitle">导入或粘贴 Markdown，生成可编辑的 Word 文档</p>
     </div>
     <p class="safety">请勿在网页上上传或处理涉密文件。涉密文件请<a href="https://github.com/SEU-Peter/md2word#本地使用" target="_blank" rel="noopener noreferrer">下载仓库并在本地部署</a>后处理。</p>
     __NOTICE__
     <form class="workspace" method="post" action="/generate">
       <div class="toolbar">
-        <label class="import">导入 .md 文件<input id="file" type="file" accept=".md,.markdown,text/markdown,text/plain"></label>
+        <label class="import"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 16V3m0 0 4 4m-4-4L8 7M4 15v5h16v-5" stroke-linecap="round" stroke-linejoin="round"/></svg>导入 .md 文件<input id="file" type="file" accept=".md,.markdown,text/markdown,text/plain"></label>
         <span class="filename" id="filename">未选择文件</span>
         <span class="state" id="state">匿名模板</span>
       </div>
       <textarea id="markdown" name="markdown" aria-label="Markdown 内容" spellcheck="false">__SOURCE__</textarea>
       <div class="actionbar">
         <span class="shortcut">快捷键：⌘ / Ctrl + Enter</span>
-        <button class="primary" type="submit">生成 Word</button>
+        <button class="primary" type="submit">生成 Word <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m0 0-6-6m6 6-6 6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
       </div>
     </form>
     <div class="below">
@@ -130,6 +138,7 @@
 日期：〔日期〕</pre>
       </details>
     </div>
+    <p class="credit">Created by Peter</p>
   </main>
   <script>
     const input = document.getElementById('file');
