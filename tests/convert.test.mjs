@@ -1,8 +1,18 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import JSZip from 'jszip';
 import { blobFromMarkdown, inlineSegments, parseMarkdown } from '../web/convert.mjs';
+
+test('static page loads the exact version of the bundled converter', async () => {
+  const [page, bundle] = await Promise.all([
+    readFile(new URL('../dist/index.html', import.meta.url), 'utf8'),
+    readFile(new URL('../dist/app.js', import.meta.url)),
+  ]);
+  const version = createHash('sha256').update(bundle).digest('hex').slice(0, 12);
+  assert.ok(page.includes(`src="./app.js?v=${version}"`));
+});
 
 test('anonymous example parses into expected blocks and metadata', async () => {
   const source = await readFile(new URL('../templates/example.md', import.meta.url), 'utf8');
