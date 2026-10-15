@@ -34,27 +34,55 @@ export function parseMarkdown(source) {
   return { metadata, blocks };
 }
 
-function runs(text, font = FONT.body, size = 32) {
-  return text.split(/(\d+(?:[.,:/%-]\d+)*)/).filter(Boolean).map(chunk => new TextRun({
-    text: chunk,
-    bold: true,
-    size,
-    font: { ascii: 'Times New Roman', hAnsi: 'Times New Roman', eastAsia: font },
-  }));
+export function inlineSegments(text) {
+  const segments = [];
+  let plain = '';
+  for (let index = 0; index < text.length;) {
+    if (text[index] === '\\' && index + 1 < text.length && '*_\\'.includes(text[index + 1])) {
+      plain += text[index + 1]; index += 2; continue;
+    }
+    const marker = text.slice(index, index + 2);
+    if ((marker === '**' || marker === '__') && index + 2 < text.length && !/\s/.test(text[index + 2])) {
+      let end = index + 2;
+      while (end < text.length - 1) {
+        if (text[end] === '\\' && end + 1 < text.length) { end += 2; continue; }
+        if (text.slice(end, end + 2) === marker && end > index + 2 && !/\s/.test(text[end - 1])) break;
+        end += 1;
+      }
+      if (end < text.length - 1 && text.slice(end, end + 2) === marker && !/\s/.test(text[end - 1])) {
+        if (plain) { segments.push({ text: plain, bold: false }); plain = ''; }
+        segments.push({ text: text.slice(index + 2, end).replace(/\\([*_\\])/g, '$1'), bold: true });
+        index = end + 2;
+        continue;
+      }
+    }
+    plain += text[index]; index += 1;
+  }
+  if (plain) segments.push({ text: plain, bold: false });
+  return segments;
 }
 
-function paragraph(text = '', { font = FONT.body, size = 32, alignment = AlignmentType.JUSTIFIED, firstLine = 0, left = 0, before = 0 } = {}) {
+function runs(text, font = FONT.body, size = 32, bold = true) {
+  return inlineSegments(text).flatMap(segment => segment.text.split(/(\d+(?:[.,:/%-]\d+)*)/).filter(Boolean).map(chunk => new TextRun({
+    text: chunk,
+    bold: bold || segment.bold,
+    size,
+    font: { ascii: 'Times New Roman', hAnsi: 'Times New Roman', eastAsia: font },
+  })));
+}
+
+function paragraph(text = '', { font = FONT.body, size = 32, bold = true, alignment = AlignmentType.JUSTIFIED, firstLine = 0, left = 0, before = 0 } = {}) {
   return new Paragraph({
     alignment,
     indent: { firstLine, left },
     spacing: { before, after: 0 },
-    children: runs(text, font, size),
+    children: runs(text, font, size, bold),
   });
 }
 
 export function documentFromMarkdown(source) {
   const { metadata, blocks } = parseMarkdown(source);
-  const title = blocks[0].text;
+  const title = inlineSegments(blocks[0].text).map(segment => segment.text).join('');
   const children = [];
   if (metadata['密级']) children.push(paragraph(metadata['密级']));
   for (const block of blocks) {
@@ -67,9 +95,9 @@ export function documentFromMarkdown(source) {
       case 'h2': children.push(paragraph(block.text, { font: FONT.h2 })); break;
       case 'h3': children.push(paragraph(block.text, { font: FONT.h3 })); break;
       case 'h4': children.push(paragraph(block.text)); break;
-      case 'list': children.push(paragraph(block.text, { firstLine: 640 })); break;
-      case 'attachment': children.push(paragraph(block.text, { left: 640, before: 320 })); break;
-      default: children.push(paragraph(block.text, { firstLine: 640 }));
+      case 'list': children.push(paragraph(block.text, { bold: false, firstLine: 640 })); break;
+      case 'attachment': children.push(paragraph(block.text, { bold: false, left: 640, before: 320 })); break;
+      default: children.push(paragraph(block.text, { bold: false, firstLine: 640 }));
     }
   }
   if (metadata['落款']) children.push(paragraph(metadata['落款'], { alignment: AlignmentType.RIGHT, before: 640 }));

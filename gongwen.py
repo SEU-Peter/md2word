@@ -86,19 +86,49 @@ def add_page_field(paragraph):
     return run
 
 
-def add_text(paragraph, text: str, font: str = FONT_BODY, size: float = 16) -> None:
-    # Keep numeric runs Western-font friendly while applying the correct CJK font elsewhere.
-    chunks = re.split(r"(\d+(?:[.,:/%-]\d+)*)", text)
-    for chunk in chunks:
-        if not chunk:
-            continue
-        run = paragraph.add_run(chunk)
-        set_run_font(run, font, size)
+def inline_segments(text: str) -> list[tuple[str, bool]]:
+    """Read common Markdown strong markers without copying their delimiters to Word."""
+    segments: list[tuple[str, bool]] = []
+    plain: list[str] = []
+    index = 0
+    while index < len(text):
+        if text[index] == "\\" and index + 1 < len(text) and text[index + 1] in "*_\\":
+            plain.append(text[index + 1]); index += 2; continue
+        marker = text[index:index + 2]
+        if marker in ("**", "__") and index + 2 < len(text) and not text[index + 2].isspace():
+            end = index + 2
+            while end < len(text) - 1:
+                if text[end] == "\\" and end + 1 < len(text):
+                    end += 2; continue
+                if text[end:end + 2] == marker and end > index + 2 and not text[end - 1].isspace():
+                    break
+                end += 1
+            if end < len(text) - 1 and text[end:end + 2] == marker and not text[end - 1].isspace():
+                if plain:
+                    segments.append(("".join(plain), False)); plain.clear()
+                content = re.sub(r"\\([*_\\])", r"\1", text[index + 2:end])
+                segments.append((content, True))
+                index = end + 2
+                continue
+        plain.append(text[index]); index += 1
+    if plain:
+        segments.append(("".join(plain), False))
+    return segments
+
+
+def add_text(paragraph, text: str, font: str = FONT_BODY, size: float = 16, *, bold: bool = True) -> None:
+    # Preserve Western digits in Times New Roman and Markdown strong as real bold runs.
+    for content, strong in inline_segments(text):
+        for chunk in re.split(r"(\d+(?:[.,:/%-]\d+)*)", content):
+            if not chunk:
+                continue
+            run = paragraph.add_run(chunk)
+            set_run_font(run, font, size, bold or strong)
 
 
 def document_from_markdown(source: str) -> tuple[str, bytes]:
     meta, blocks = parse_markdown(source)
-    title = blocks[0].text
+    title = "".join(content for content, _ in inline_segments(blocks[0].text))
     document = Document()
     normal = document.styles["Normal"]
     normal.font.name = FONT_BODY
@@ -155,14 +185,14 @@ def document_from_markdown(source: str) -> tuple[str, bytes]:
         elif block.kind == "list":
             p = document.add_paragraph(); set_para(p, first_line=True)
             # Preserve the writer's Markdown marker rather than silently renumbering it.
-            add_text(p, block.text, FONT_BODY)
+            add_text(p, block.text, FONT_BODY, bold=False)
         elif block.kind == "attachment":
             p = document.add_paragraph(); set_para(p, before=16)
             p.paragraph_format.left_indent = Pt(32)  # Attachment line: left-indent two characters.
-            add_text(p, block.text, FONT_BODY)
+            add_text(p, block.text, FONT_BODY, bold=False)
         else:
             p = document.add_paragraph(); set_para(p, first_line=True)
-            add_text(p, block.text, FONT_BODY)
+            add_text(p, block.text, FONT_BODY, bold=False)
 
     if meta.get("落款"):
         p = document.add_paragraph(); set_para(p, align=WD_ALIGN_PARAGRAPH.RIGHT, before=32)

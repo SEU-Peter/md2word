@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import test from 'node:test';
 import JSZip from 'jszip';
-import { blobFromMarkdown, parseMarkdown } from '../web/convert.mjs';
+import { blobFromMarkdown, inlineSegments, parseMarkdown } from '../web/convert.mjs';
 
 test('anonymous example parses into expected blocks and metadata', async () => {
   const source = await readFile(new URL('../templates/example.md', import.meta.url), 'utf8');
@@ -28,4 +28,21 @@ test('browser-generated Word includes reference layout, right-aligned signature 
   assert.match(xml, /w:eastAsia="方正仿宋GBK"/);
   assert.equal((xml.match(/w:jc w:val="right"/g) || []).length, 2);
   assert.match(footer, /PAGE/);
+});
+
+test('Markdown strong markers become bold Word runs while plain body stays regular', async () => {
+  assert.deepEqual(inlineSegments('普通**重点**和__另一处__，\\**原样\\**'), [
+    { text: '普通', bold: false },
+    { text: '重点', bold: true },
+    { text: '和', bold: false },
+    { text: '另一处', bold: true },
+    { text: '，**原样**', bold: false },
+  ]);
+  const { blob } = await blobFromMarkdown('# 标题\n\n普通**重点**和__另一处__。');
+  const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+  const xml = await zip.file('word/document.xml').async('string');
+  assert.doesNotMatch(xml, /<w:t>\*\*|<w:t>__/);
+  assert.match(xml, /<w:b w:val="false"\/>[^]*?<w:t[^>]*>普通<\/w:t>/);
+  assert.match(xml, /<w:b\/>[^]*?<w:t[^>]*>重点<\/w:t>/);
+  assert.match(xml, /<w:b\/>[^]*?<w:t[^>]*>另一处<\/w:t>/);
 });
