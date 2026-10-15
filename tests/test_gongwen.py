@@ -1,5 +1,6 @@
 import io
 import unittest
+from datetime import date
 
 from docx import Document
 
@@ -40,6 +41,16 @@ class MarkdownBoldTests(unittest.TestCase):
             with self.subTest(heading=heading):
                 self.assertEqual(paragraphs[heading].paragraph_format.first_line_indent.pt, 32)
                 self.assertFalse(paragraphs[heading].text.startswith((" ", "　")))
+
+    def test_untitled_document_uses_current_date_without_adding_title(self):
+        source = "## 一、情况\n正文**重点**。"
+        today = date.today().isoformat()
+        title, data = document_from_markdown(source)
+        self.assertEqual(title, today)
+        paragraphs = [p.text for p in Document(io.BytesIO(data)).paragraphs if p.text]
+        self.assertEqual(paragraphs, ["一、情况", "正文重点。"])
+        with self.assertRaisesRegex(ValueError, "请输入 Markdown 正文内容"):
+            document_from_markdown("  \n\n")
 
 
 if __name__ == "__main__":

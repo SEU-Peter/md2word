@@ -30,8 +30,15 @@ export function parseMarkdown(source) {
     current.push(line);
   }
   flush();
-  if (blocks[0]?.kind !== 'h1') throw new Error('请以一级 Markdown 标题（# 文件标题）作为文件标题。');
+  if (!blocks.length) throw new Error('请输入 Markdown 正文内容。');
   return { metadata, blocks };
+}
+
+function todayFilename() {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
 }
 
 export function inlineSegments(text) {
@@ -82,7 +89,9 @@ function paragraph(text = '', { font = FONT.body, size = 32, bold = true, alignm
 
 export function documentFromMarkdown(source) {
   const { metadata, blocks } = parseMarkdown(source);
-  const title = inlineSegments(blocks[0].text).map(segment => segment.text).join('');
+  const title = blocks[0].kind === 'h1'
+    ? inlineSegments(blocks[0].text).map(segment => segment.text).join('')
+    : todayFilename();
   const children = [];
   if (metadata['密级']) children.push(paragraph(metadata['密级']));
   for (const block of blocks) {

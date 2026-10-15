@@ -6,6 +6,7 @@ from __future__ import annotations
 import io
 import re
 from dataclasses import dataclass
+from datetime import date
 
 from docx import Document
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -53,8 +54,8 @@ def parse_markdown(source: str) -> tuple[dict[str, str], list[Block]]:
             flush(); blocks.append(Block("attachment", line)); continue
         current.append(line)
     flush()
-    if not blocks or blocks[0].kind != "h1":
-        raise ValueError("请以一级 Markdown 标题（# 文件标题）作为文件标题。")
+    if not blocks:
+        raise ValueError("请输入 Markdown 正文内容。")
     return metadata, blocks
 
 
@@ -128,7 +129,10 @@ def add_text(paragraph, text: str, font: str = FONT_BODY, size: float = 16, *, b
 
 def document_from_markdown(source: str) -> tuple[str, bytes]:
     meta, blocks = parse_markdown(source)
-    title = "".join(content for content, _ in inline_segments(blocks[0].text))
+    title = (
+        "".join(content for content, _ in inline_segments(blocks[0].text))
+        if blocks[0].kind == "h1" else date.today().isoformat()
+    )
     document = Document()
     normal = document.styles["Normal"]
     normal.font.name = FONT_BODY

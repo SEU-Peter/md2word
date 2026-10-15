@@ -21,7 +21,20 @@ test('anonymous example parses into expected blocks and metadata', async () => {
   assert.ok(blocks.some(block => block.kind === 'h2'));
   assert.ok(metadata['落款']);
   assert.ok(metadata['日期']);
-  assert.throws(() => parseMarkdown('正文没有标题'), /一级 Markdown 标题/);
+  assert.deepEqual(parseMarkdown('正文没有标题').blocks, [{ kind: 'body', text: '正文没有标题' }]);
+  assert.throws(() => parseMarkdown('  \n\n'), /请输入 Markdown 正文内容/);
+});
+
+test('untitled Markdown downloads with today’s date and no inserted title', async () => {
+  const today = new Date();
+  const expected = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const { title, blob } = await blobFromMarkdown('## 一、情况\n正文**重点**。');
+  assert.equal(title, expected);
+  const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+  const xml = await zip.file('word/document.xml').async('string');
+  assert.match(xml, /一、情况/);
+  assert.match(xml, /正文/);
+  assert.doesNotMatch(xml, new RegExp(`<w:t[^>]*>${expected}</w:t>`));
 });
 
 test('browser-generated Word includes reference layout, right-aligned signature and date', async () => {
