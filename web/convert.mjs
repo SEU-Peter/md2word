@@ -92,7 +92,7 @@ export function documentFromMarkdown(source) {
         if (metadata['副标题']) children.push(paragraph(metadata['副标题'], { font: FONT.title, alignment: AlignmentType.CENTER }));
         children.push(new Paragraph({ children: [] }));
         break;
-      case 'h2': children.push(paragraph(block.text, { font: FONT.h2 })); break;
+      case 'h2': children.push(paragraph(block.text, { font: FONT.h2, firstLine: 640 })); break;
       case 'h3': children.push(paragraph(block.text, { font: FONT.h3, firstLine: 640 })); break;
       case 'h4': children.push(paragraph(block.text, { firstLine: 640 })); break;
       case 'list': children.push(paragraph(block.text, { bold: false, firstLine: 640 })); break;

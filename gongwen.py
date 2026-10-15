@@ -174,7 +174,7 @@ def document_from_markdown(source: str) -> tuple[str, bytes]:
             # The source leaves one blank paragraph between title block and body.
             document.add_paragraph()
         elif block.kind == "h2":
-            p = document.add_paragraph(); set_para(p, before=0, after=0)
+            p = document.add_paragraph(); set_para(p, first_line=True, before=0, after=0)
             add_text(p, block.text, FONT_H1)
         elif block.kind == "h3":
             p = document.add_paragraph(); set_para(p, first_line=True, before=0, after=0)
