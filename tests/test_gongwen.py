@@ -32,6 +32,16 @@ class MarkdownBoldTests(unittest.TestCase):
             ("。", False),
         ])
 
+    def test_second_and_third_level_headings_have_two_character_indent(self):
+        source = "# 标题\n\n## 一级标题\n### 二级标题\n#### 三级标题\n"
+        _, data = document_from_markdown(source)
+        paragraphs = {p.text: p for p in Document(io.BytesIO(data)).paragraphs if p.text}
+        self.assertEqual(paragraphs["一级标题"].paragraph_format.first_line_indent.pt, 0)
+        for heading in ("二级标题", "三级标题"):
+            with self.subTest(heading=heading):
+                self.assertEqual(paragraphs[heading].paragraph_format.first_line_indent.pt, 32)
+                self.assertFalse(paragraphs[heading].text.startswith((" ", "　")))
+
 
 if __name__ == "__main__":
     unittest.main()

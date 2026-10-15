@@ -93,8 +93,8 @@ export function documentFromMarkdown(source) {
         children.push(new Paragraph({ children: [] }));
         break;
       case 'h2': children.push(paragraph(block.text, { font: FONT.h2 })); break;
-      case 'h3': children.push(paragraph(block.text, { font: FONT.h3 })); break;
-      case 'h4': children.push(paragraph(block.text)); break;
+      case 'h3': children.push(paragraph(block.text, { font: FONT.h3, firstLine: 640 })); break;
+      case 'h4': children.push(paragraph(block.text, { firstLine: 640 })); break;
       case 'list': children.push(paragraph(block.text, { bold: false, firstLine: 640 })); break;
       case 'attachment': children.push(paragraph(block.text, { bold: false, left: 640, before: 320 })); break;
       default: children.push(paragraph(block.text, { bold: false, firstLine: 640 }));

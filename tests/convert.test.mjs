@@ -56,3 +56,17 @@ test('Markdown strong markers become bold Word runs while plain body stays regul
   assert.match(xml, /<w:b\/>[^]*?<w:t[^>]*>重点<\/w:t>/);
   assert.match(xml, /<w:b\/>[^]*?<w:t[^>]*>另一处<\/w:t>/);
 });
+
+test('browser-generated Word indents second- and third-level headings by two characters', async () => {
+  const { blob } = await blobFromMarkdown('# 标题\n\n## 一级标题\n### 二级标题\n#### 三级标题');
+  const zip = await JSZip.loadAsync(await blob.arrayBuffer());
+  const xml = await zip.file('word/document.xml').async('string');
+  const paragraphs = [...xml.matchAll(/<w:p(?:\s[^>]*)?>[\s\S]*?<\/w:p>/g)].map(match => match[0]);
+  const heading = text => paragraphs.find(paragraph => paragraph.includes(`>${text}</w:t>`));
+  assert.match(heading('一级标题'), /<w:ind[^>]*w:firstLine="0"/);
+  for (const text of ['二级标题', '三级标题']) {
+    const paragraph = heading(text);
+    assert.match(paragraph, /<w:ind[^>]*w:firstLine="640"/);
+    assert.doesNotMatch(paragraph, /<w:t[^>]*>[ 　]/);
+  }
+});
